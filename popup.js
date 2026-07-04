@@ -13,6 +13,48 @@ document.addEventListener('DOMContentLoaded', function () {
   const copyIconCheck = document.getElementById('copyIconCheck');
 
   const infoText = document.getElementById('infoText');
+  const articleModeRow = document.getElementById('articleModeRow');
+  const articleModeToggle = document.getElementById('articleModeToggle');
+
+  // Reflect the saved preference and persist changes. Defaults OFF so existing
+  // users keep today's full-page behavior; the toggle is opt-in. content.js
+  // reads the same key from chrome.storage when it runs in the page.
+  chrome.storage.sync.get({ articleMode: false }, function (opts) {
+    articleModeToggle.checked = opts.articleMode;
+  });
+  articleModeToggle.addEventListener('change', function () {
+    chrome.storage.sync.set({ articleMode: articleModeToggle.checked });
+  });
+
+  // The "Article only" toggle only makes sense on article-shaped pages. Probe the
+  // active tab with Readability's detector and reveal the toggle only when it
+  // applies; on feeds, shops, dashboards (or restricted pages) it stays hidden.
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    if (!tabs || tabs.length === 0) return;
+    const tabId = tabs[0].id;
+    chrome.scripting.executeScript(
+      { target: { tabId: tabId }, files: ['Readability-readerable.js', 'is-article.js'] },
+      function () {
+        if (chrome.runtime.lastError) return; // restricted page; leave hidden
+        chrome.scripting.executeScript(
+          {
+            target: { tabId: tabId },
+            func: function () {
+              return typeof isArticlePage === 'function'
+                ? isArticlePage(document)
+                : false;
+            }
+          },
+          function (results) {
+            if (chrome.runtime.lastError) return;
+            if (results && results[0] && results[0].result) {
+              articleModeRow.classList.remove('hidden');
+            }
+          }
+        );
+      }
+    );
+  });
 
   let pageTitle = 'page';
   let turndownService;
@@ -65,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
       chrome.scripting.executeScript(
         {
           target: { tabId: tabs[0].id },
-          files: ['content.js']
+          files: ['Readability.js', 'Readability-readerable.js', 'is-article.js', 'content.js']
         },
         () => {
           if (chrome.runtime.lastError) {
