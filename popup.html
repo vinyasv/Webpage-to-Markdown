@@ -136,6 +136,25 @@
       padding: 8px 12px;
     }
 
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .option-row input {
+      margin: 0;
+      cursor: pointer;
+      accent-color: #2563eb;
+    }
+
+    .option-row label {
+      font-size: 12px; /* text-xs */
+      color: #6b7280; /* text-gray-500 */
+      cursor: pointer;
+    }
+
     .hidden {
       display: none !important; /* Important to override other display properties */
     }
@@ -150,6 +169,11 @@
       <h1>Markdown Converter</h1>
     </div>
     <p class="description">Convert current page to Markdown format</p>
+
+    <div class="option-row hidden" id="articleModeRow">
+      <input type="checkbox" id="articleModeToggle">
+      <label for="articleModeToggle">Article only (strip nav, sidebars &amp; clutter)</label>
+    </div>
 
     <div class="action-area">
       <div id="initialView">
@@ -186,6 +210,7 @@
   </div>
 
   <script src="turndown.js"></script>
+  <script src="turndown-plugin-gfm.js"></script>
   <script src="setup-turndown.js"></script>
   <script src="popup.js"></script>
 </body>

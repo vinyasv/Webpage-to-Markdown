@@ -1,0 +1,12 @@
+{
+  "name": "webpage-to-markdown",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Convert any webpage to clean Markdown in one click.",
+  "scripts": {
+    "test": "node test/is-article.test.js && node test/tables.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.0"
+  }
+}
