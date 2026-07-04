@@ -16,15 +16,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const articleModeRow = document.getElementById('articleModeRow');
   const articleModeToggle = document.getElementById('articleModeToggle');
 
-  // Reflect the saved preference and persist changes. Defaults OFF so existing
-  // users keep today's full-page behavior; the toggle is opt-in. content.js
-  // reads the same key from chrome.storage when it runs in the page.
-  chrome.storage.sync.get({ articleMode: false }, function (opts) {
-    articleModeToggle.checked = opts.articleMode;
-  });
-  articleModeToggle.addEventListener('change', function () {
-    chrome.storage.sync.set({ articleMode: articleModeToggle.checked });
-  });
+  // The "Article only" toggle is a per-conversion choice (unchecked by default),
+  // read straight from the checkbox at convert time — no stored preference.
 
   // The "Article only" toggle only makes sense on article-shaped pages. Probe the
   // active tab with Readability's detector and reveal the toggle only when it
@@ -104,19 +97,33 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       pageTitle = tabs[0].title || 'page';
+      const tabId = tabs[0].id;
+      const articleMode = articleModeToggle.checked;
+
+      function injectionFailed() {
+        console.error('Script injection failed: ' + chrome.runtime.lastError.message);
+        markdownOutputPre.textContent = 'Error: Could not access page content. ' + chrome.runtime.lastError.message;
+        updateState('converted');
+        copyMarkdownBtn.disabled = true;
+      }
+
+      // Hand the toggle's current state to the page (no chrome.storage), then
+      // run the converter, which reads it from the shared isolated-world global.
       chrome.scripting.executeScript(
         {
-          target: { tabId: tabs[0].id },
-          files: ['Readability.js', 'Readability-readerable.js', 'is-article.js', 'content.js']
+          target: { tabId: tabId },
+          func: function (mode) { window.__wtmArticleMode = mode; },
+          args: [articleMode]
         },
         () => {
-          if (chrome.runtime.lastError) {
-            console.error('Script injection failed: ' + chrome.runtime.lastError.message);
-            markdownOutputPre.textContent = 'Error: Could not access page content. ' + chrome.runtime.lastError.message;
-            updateState('converted');
-            copyMarkdownBtn.disabled = true;
-            return;
-          }
+          if (chrome.runtime.lastError) { injectionFailed(); return; }
+          chrome.scripting.executeScript(
+            {
+              target: { tabId: tabId },
+              files: ['Readability.js', 'Readability-readerable.js', 'is-article.js', 'content.js']
+            },
+            () => { if (chrome.runtime.lastError) injectionFailed(); }
+          );
         }
       );
     });

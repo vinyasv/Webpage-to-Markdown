@@ -36,8 +36,9 @@
     chrome.runtime.sendMessage({ action: "getSourceHtml", source: html });
   }
 
-  chrome.storage.sync.get({ articleMode: false }, function (opts) {
-    var html = opts.articleMode ? getReadableHtml() : null;
-    send(html || document.documentElement.outerHTML);
-  });
+  // The popup stashes the toggle state on the shared isolated-world global just
+  // before injecting this script. Defaults to full page when unset.
+  var articleMode = window.__wtmArticleMode === true;
+  var html = articleMode ? getReadableHtml() : null;
+  send(html || document.documentElement.outerHTML);
 })();
